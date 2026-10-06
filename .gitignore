@@ -1,0 +1,12 @@
+__pycache__/
+tests/.tmp/
+.venv/
+build/
+dist/
+*.py[cod]
+Thumbs.db
+.DS_Store
+/staging/
+/backups/
+*.iso
+*.img
