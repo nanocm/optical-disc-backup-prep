@@ -23,6 +23,7 @@ DISC_ID_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,31}\Z")
 DISC_SEGMENT_RE = re.compile(r"[A-Za-z0-9]+\Z")
 DISC_SUFFIX_RE = re.compile(r"[0-9]{1,8}\Z")
 BATCH_NUMBER_RE = re.compile(r"B(\d{2})_", re.IGNORECASE)
+FULL_BATCH_NAME_RE = re.compile(r"B(\d{2})_(\d{4}-\d{2}-\d{2})_(.+)\Z")
 HASH_LINE_RE = re.compile(r"([0-9a-f]{64})  (.+)\Z")
 INVALID_TITLE_CHARS = set('<>:"/\\|?*')
 REPARSE_POINT = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
@@ -160,6 +161,26 @@ def compose_disc_id(prefix: str, middle: str, suffix: str) -> str:
     if not DISC_ID_RE.fullmatch(disc_id):
         raise BackupError("组合后的盘号超过 32 个字符，请缩短前缀或中段。")
     return disc_id
+
+
+def parse_batch_name(name: str) -> tuple[int, str, str]:
+    """Parse a manually entered batch folder name in the on-disc format."""
+    match = FULL_BATCH_NAME_RE.fullmatch(name.strip())
+    if not match:
+        raise BackupError("批次目录名须为 B01_YYYY-MM-DD_Title，例如 B03_2026-10-06_Photos。")
+    number = int(match.group(1))
+    if number == 0:
+        raise BackupError("批次编号须在 01–99 之间。")
+    try:
+        date.fromisoformat(match.group(2))
+    except ValueError as exc:
+        raise BackupError("批次日期须为有效的 YYYY-MM-DD。") from exc
+    title = match.group(3)
+    if not title.strip() or title != title.strip() or len(title) > 48 or title.endswith("."):
+        raise BackupError("请填写 1–48 字的主题，末尾不能是空格或句点。")
+    if any(char in INVALID_TITLE_CHARS or ord(char) < 32 for char in title):
+        raise BackupError("主题包含 Windows 文件名不允许的字符。")
+    return number, match.group(2), title
 
 
 def load_existing_disc(disc_dir: Path) -> ExistingDisc:

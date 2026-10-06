@@ -1,29 +1,31 @@
 # 光盘备份准备工具
 
-这是一个 Windows 桌面程序，用来整理刻录前的文件、生成 SHA-256 清单，并在刻录后读回校验。程序不刻录光盘；`DATA/` 中的文件由你自己安排，它不会移动或修改源文件。
+[English](README.en.md) · [下载 Windows 版](https://github.com/nanocm/optical-disc-backup-prep/releases/latest)
 
-界面为中文。[English overview](README.en.md)
+在刻录前建立盘号和批次目录，给文件生成 SHA-256 清单；刻录后，从光盘读回文件并校验。程序不会执行刻录，也不会替你移动源文件。界面右上角的 **语言/language** 可以在中文和英文之间切换。
 
-## 运行
+## 下载与运行
 
-需要 Windows、Python 3.11 或更新版本（安装时包含 Tkinter），以及系统自带的 Windows PowerShell 5.1。双击 `run_gui.cmd`，或在项目目录运行：
+从 [Releases](https://github.com/nanocm/optical-disc-backup-prep/releases/latest) 下载 `OpticalDiscBackupPrep-…-windows-x64.exe`，直接运行。这个版本自带 Python 和所需的文件，不必安装 Python。下载页同时提供 `SHA256SUMS.txt`，可核对 EXE 的 SHA-256。
+
+运行源码需要 Windows、Python 3.11 或更新版本（含 Tkinter），以及 Windows PowerShell 5.1。下载仓库后双击 `run_gui.cmd`，或在项目目录运行：
 
 ```powershell
 python backup_gui.py
 ```
 
-不需要安装第三方 Python 包，也不需要管理员权限。启动时程序只识别光驱，不读盘；没有光驱也能准备目录和校验硬盘上的文件。点击“读取光盘”后，程序才会查询所选光驱中的盘片。
+启动时只列出光驱，不读取盘片。没有光驱也能准备目录和校验硬盘文件。只有点击“读取光盘”时，程序才查询选定光驱中的介质。
 
-## 准备一张新盘
+## 准备一张盘
 
-1. 选择硬盘上的准备目录，例如 `D:\Archive-Staging`。填写计划使用的介质，如 `BD-R 25 GB`。如果盘片已放入光驱，可点“读取光盘”核对类型；制造商 MID 仍需从 ImgBurn 等工具手动抄入，也可以留空。
-2. 填写盘号的三段：前缀 `ARC`、中段 `BDR25`、序号 `001` 会组成 `ARC_BDR25_001`。中段是自定代码，不是盘片的制造商 MID。序号由你管理，程序不会自动占号或检查其他准备目录。
-3. 填写批次号、日期和主题。需要说明文件时保持“本批次不写 ABOUT.txt”未勾选；不需要时勾选。点击“创建空批次”。
-4. 点击“打开 DATA”，自行建立子目录并把待备份文件复制进去。如果要写说明，可在界面中填写或导入 UTF-8 文本，再点“保存 ABOUT”。
-5. 点击“生成／更新 SHA”，然后用“校验目录／光盘”选择本地的 `B01_...` 目录，先检查准备好的文件。
-6. 用刻录软件写盘。光盘根目录应包含 `DISC_INFO.txt` 和 `B01_...`，不要多刻一层 `ARC_BDR25_001`。刻录软件的卷标可以设为盘号。刻录完成后弹出、重插光盘，再用本工具选择光盘上的 `B01_...` 目录读回校验。
+1. 在硬盘上选一个已有的准备目录。填写介质类型，并输入盘号的前缀、中段和序号。例如 `ARC`、`BDR25`、`001` 组成 `ARC_BDR25_001`。中段是自定的盘型代码，不是制造商 MID。
+2. 如需记录 MID，从 ImgBurn 等工具核对后手动填写；不确定就留空。程序读取的盘片信息不能自动验证 MID。
+3. 填写批次号、日期和主题；也可以勾选“手动输入完整批次名”，直接填写 `B03_2026-10-06_Photos`。手动模式要求 `B01_YYYY-MM-DD_Title` 格式，批次号为 01–99。需要 `ABOUT.txt` 时保持“不写 ABOUT.txt”未勾选；不需要时勾选。点击“创建空批次”。
+4. 点击“打开 DATA”，自行建立子目录并复制文件。需要说明时，可在界面中编写或导入 UTF-8 文本，然后点击“保存 ABOUT”。
+5. 文件整理完毕后点击“生成／更新 SHA”。再点“校验目录／光盘”，选择硬盘上的 `B01_…` 目录做一次校验。
+6. 用刻录软件写盘。把盘号目录**里面**的内容放到光盘根目录，设置卷标（可用盘号），检查容量和刻录设置。完成后弹出、重插光盘，选择光盘上的 `B01_…` 目录再校验一次。
 
-未勾选“不写 ABOUT.txt”时，目录如下：
+未勾选“不写 ABOUT.txt”时，准备目录如下。`SHA256SUMS.txt` 刚创建时是空的；必须在放入数据后生成清单。
 
 ```text
 D:\Archive-Staging\ARC_BDR25_001\
@@ -32,33 +34,31 @@ D:\Archive-Staging\ARC_BDR25_001\
     ├── ABOUT.txt
     ├── SHA256SUMS.txt
     └── DATA\
-        └── ...自行整理的文件和子目录
+        └── …自行整理的文件和子目录
 ```
 
-勾选“不写 ABOUT.txt”后，新批次不会创建该文件。如果已经创建了空的 `ABOUT.txt`，生成清单时勾选此项会移除它；已有内容的 `ABOUT.txt` 不会被自动删除。`SHA256SUMS.txt` 在生成前是空文件，空文件不表示校验通过。
+不写 ABOUT 时，批次目录中没有 `ABOUT.txt`。如果先创建了空文件，生成清单时勾选“不写 ABOUT.txt”会移除这个空文件；已有内容的 ABOUT 不会被自动删除。
 
-要为同一张盘准备 B02，点击“沿用已有盘号…”，选择包含 `DISC_INFO.txt` 的盘号目录。程序会带回盘号、介质、MID，并填写下一批次号。能否真正把 B02 刻到同一张盘，取决于第一次刻录时选用的文件系统、会话设置和盘片是否仍可续写。详见[数据光盘刻录指南](https://nanocm.github.io/optical-disc-writing-guide/)。
+为同一盘准备下一批时，点击“沿用已有盘号…”，选择含 `DISC_INFO.txt` 的盘号目录。程序会带回盘号、介质和 MID，并填写下一批次号。**准备出 B02 不表示光盘一定可续写。**续写能力取决于介质、第一次刻录的会话设置和盘片状态。操作细节见[数据光盘刻录指南](https://nanocm.github.io/optical-disc-writing-guide/)。
 
-## SHA-256 与读回校验
+## 清单记录了什么
 
-程序递归遍历 `DATA/`，为每个普通文件计算 SHA-256；有 `ABOUT.txt` 时也计算它。清单每行是 64 位十六进制摘要、两个空格和相对于批次目录的路径：
+程序递归计算 `DATA/` 内每个普通文件的 SHA-256；有 `ABOUT.txt` 时，也计算它。清单每行由小写十六进制摘要、两个空格和相对于批次目录的路径组成：
 
 ```text
 2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824  DATA/hello.txt
 ```
 
-“校验目录／光盘”是只读操作。它会重新读取清单中的文件，检查哈希、缺失文件及多出的文件。可以对硬盘准备目录使用，也可以在刻录后对光盘上的批次目录使用。它不测量盘片的 LDC/BIS、PI 等物理质量。
+“校验目录／光盘”会重新读取文件，报告哈希不符、缺失文件和多出的文件。它不测量 LDC/BIS、PI 等盘片物理错误率，也不检查空目录。`SHA256SUMS.txt` 不记录自身或盘根目录的 `DISC_INFO.txt`；建议把这两个文件另存一份到硬盘索引，以便日后核对盘号和介质记录。程序拒绝 `DATA/` 中的链接和云盘占位文件。
 
-清单不计算自身，也不包含盘根目录的 `DISC_INFO.txt`。目录本身没有文件哈希，空目录不会写入清单。程序拒绝读取 `DATA/` 中的链接和云盘占位文件。`DISC_INFO.txt` 中的介质与 MID 是准备时记录的信息；尤其是 MID，程序无法自动验证你手填的值。
+格式细节见[目录与校验格式](docs/FORMAT.md)。
 
-文件格式与校验范围见 [docs/FORMAT.md](docs/FORMAT.md)。
+## 开发与打包
 
-## 开发
+程序只使用 Python 标准库。`backup_core.py` 处理目录与校验，`backup_gui.py` 是 Tkinter 界面，`read_disc.ps1` 通过 Windows IMAPI2 查询光驱。运行测试：
 
 ```powershell
 python -m unittest discover -s tests -v
 ```
 
-`backup_core.py` 负责创建目录和校验，`backup_gui.py` 是 Tkinter 界面，`read_disc.ps1` 通过 Windows IMAPI2 只读查询光驱。运行测试不会刻录光盘。
-
-本项目采用 [MIT 许可证](LICENSE)。
+EXE 的构建步骤见[构建说明](docs/BUILD.md)。项目采用 [MIT 许可证](LICENSE)。

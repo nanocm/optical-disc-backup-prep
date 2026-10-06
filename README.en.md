@@ -1,29 +1,64 @@
-# Optical disc backup prep
+# Optical Disc Backup Prep
 
-This Windows desktop app prepares files for an optical-disc backup and checks them after burning. It creates a disc folder, an optional `ABOUT.txt`, and a SHA-256 manifest. You arrange the files under `DATA/` and burn the prepared content with separate software. The app never writes to an optical drive or changes your source files.
+[中文](README.md) · [Download for Windows](https://github.com/nanocm/optical-disc-backup-prep/releases/latest)
 
-The interface and [full instructions](README.md) are in Chinese.
+This desktop app creates a disc ID and batch folder before burning, writes a SHA-256 manifest, and reads files back for verification after burning. It does not burn discs or move your source files. Use the **语言/language** selector in the upper-right corner to switch between Chinese and English.
 
-## Run
+## Download and run
 
-Install Python 3.11 or later with Tkinter on Windows. Windows PowerShell 5.1 is also required for drive detection. No third-party Python packages or administrator rights are needed.
+Download `OpticalDiscBackupPrep-…-windows-x64.exe` from [Releases](https://github.com/nanocm/optical-disc-backup-prep/releases/latest) and run it directly. Python is bundled. A `SHA256SUMS.txt` file is available alongside the EXE so you can check the download's SHA-256.
 
-Double-click `run_gui.cmd`, or run:
+To run from source, use Windows with Python 3.11 or later (including Tkinter) and Windows PowerShell 5.1. Double-click `run_gui.cmd`, or run this command in the project folder:
 
 ```powershell
 python backup_gui.py
 ```
 
-At startup the app identifies available drives without reading a disc. Disc information is queried only when you click **读取光盘** (Read disc). You can prepare and hash files without a connected drive; enter the intended media type manually.
+At startup the app lists drives without reading media. You can prepare folders and verify files without a drive. Disc details are queried only when you select **Read disc**.
 
-## Workflow
+## Prepare a disc
 
-1. Choose a staging directory on a hard drive. Enter a disc ID in three parts, such as `ARC`, `BDR25`, and `001`, which produces `ARC_BDR25_001`. Enter the intended media type. The manufacturer's MID is optional and must be checked separately.
-2. Enter a batch number, date, and title. Select **本批次不写 ABOUT.txt** if this batch should have no description file. Create the batch.
-3. Copy your files into `DATA/`. Save `ABOUT.txt` if you chose to include it, then generate `SHA256SUMS.txt`.
-4. Verify the staging batch. Burn the contents of the disc-ID folder so that `DISC_INFO.txt` and the `B01_...` directory are at the disc root.
-5. Eject and reinsert the disc. Select its `B01_...` directory in the app and verify again.
+1. Choose an existing staging folder on a hard drive. Enter the intended media type and the three parts of a disc ID. For example, `ARC`, `BDR25`, and `001` become `ARC_BDR25_001`. The middle part is your media code, not the manufacturer's MID.
+2. If you want to record the MID, check it in ImgBurn or another disc tool and enter it manually. Leave it blank if uncertain; this app cannot verify the MID automatically.
+3. Enter a batch number, date, and title. You can also select **Enter full batch name** and type a name such as `B03_2026-10-06_Photos` directly. The format is `B01_YYYY-MM-DD_Title`, with a batch number from 01 to 99. Leave **Omit ABOUT.txt for this batch** unchecked if you need notes. Select **Create batch**.
+4. Select **Open DATA** and copy your files into `DATA/`, arranging subfolders as you like. Write or import UTF-8 notes and select **Save ABOUT** if this batch includes `ABOUT.txt`.
+5. Select **Generate SHA-256** after the files are in place. Then select **Verify folder/disc** and choose the `B01_…` folder on your hard drive.
+6. Burn the **contents** of the disc-ID folder with separate software, placing `DISC_INFO.txt` and `B01_…` at the disc root. Set a volume label if wanted, and check capacity and burning settings. Eject and reinsert the disc, then verify its `B01_…` folder in the app.
 
-The manifest covers every regular file under `DATA/` recursively and `ABOUT.txt` when present. Empty folders, `DISC_INFO.txt`, and the manifest itself are outside its scope. Verification compares file hashes and detects missing or unexpected files. It does not measure the disc's physical error rates. See [the format reference](docs/FORMAT.md) for details.
+With ABOUT enabled, the staging folder looks like this:
 
-Run the tests with `python -m unittest discover -s tests -v`. Licensed under [MIT](LICENSE).
+```text
+D:\Archive-Staging\ARC_BDR25_001\
+├── DISC_INFO.txt
+└── B01_2026-10-06_Photos\
+    ├── ABOUT.txt
+    ├── SHA256SUMS.txt
+    └── DATA\
+        └── …your files and folders
+```
+
+`SHA256SUMS.txt` starts empty. Generate it after adding files. If you omit ABOUT, the file is absent. Selecting the omit option when generating the manifest removes an empty ABOUT file, but never removes one containing notes.
+
+To prepare another batch for the same disc, choose **Use existing disc ID…** and select the folder containing `DISC_INFO.txt`. The app restores the disc ID, media type, and MID, then fills in the next batch number. Whether you can actually burn B02 onto the disc depends on its media and session state. See the [optical-disc writing guide](https://nanocm.github.io/optical-disc-writing-guide/) for burning details (Chinese).
+
+## Manifest and verification
+
+The app hashes every regular file under `DATA/` recursively, plus `ABOUT.txt` when present. Each UTF-8 manifest line contains a lowercase SHA-256 digest, two spaces, and a path relative to the batch folder:
+
+```text
+2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824  DATA/hello.txt
+```
+
+Verification reads the listed files again and reports changed, missing, or unexpected files. It does not measure the disc's physical error rates or record empty folders. The manifest excludes itself and `DISC_INFO.txt` at the disc root. Keep separate copies of both files in a hard-drive index if you want to preserve the disc ID and media record for later checking. Links and cloud-only placeholders under `DATA/` are rejected.
+
+See the [format reference](docs/FORMAT.en.md) for details.
+
+## Development and packaging
+
+The app has no third-party runtime dependencies. `backup_core.py` handles folders and checksums; `backup_gui.py` provides the Tkinter interface; `read_disc.ps1` queries optical drives through Windows IMAPI2.
+
+```powershell
+python -m unittest discover -s tests -v
+```
+
+See the [build instructions](docs/BUILD.md) to make a Windows EXE. Licensed under [MIT](LICENSE).

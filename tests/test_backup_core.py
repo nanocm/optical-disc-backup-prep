@@ -16,6 +16,7 @@ from backup_core import (  # noqa: E402
     create_batch,
     generate_manifest,
     load_existing_disc,
+    parse_batch_name,
     save_about,
     verify_batch,
     _is_optical_path,
@@ -153,6 +154,15 @@ class BackupCoreTests(unittest.TestCase):
                       ("ARC", "BDR25", "A01")):
             with self.subTest(parts=parts), self.assertRaises(BackupError):
                 compose_disc_id(*parts)
+
+    def test_parse_manually_entered_batch_name(self) -> None:
+        self.assertEqual(parse_batch_name("B03_2026-10-06_Photos"),
+                         (3, "2026-10-06", "Photos"))
+        for name in ("B00_2026-10-06_Photos", "B3_2026-10-06_Photos",
+                     "B03_2026-13-06_Photos", "B03_2026-10-06_",
+                     "B03_2026-10-06_ Photos"):
+            with self.subTest(name=name), self.assertRaises(BackupError):
+                parse_batch_name(name)
 
     def test_existing_disc_batch(self) -> None:
         create_batch(self.plan())

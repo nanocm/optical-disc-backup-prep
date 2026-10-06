@@ -53,6 +53,32 @@ class GUIFlowTests(unittest.TestCase):
                 app.after_cancel(event_id)
             app.destroy()
 
+    def test_language_switch_preserves_inputs_and_editor(self) -> None:
+        app = BackupGUI()
+        app.after_cancel(app.startup_drive_after)
+        try:
+            app.middle_var.set("BDR25")
+            app.suffix_var.set("003")
+            app.title_var.set("Photos")
+            app.about_text.insert("1.0", "My notes")
+            app.language_var.set("English")
+            app._change_language()
+            self.assertEqual(app.title(), "Optical Disc Backup Prep")
+            self.assertEqual(app.read_button.cget("text"), "Read disc")
+            self.assertEqual(app.disc_id_var.get(), "ARC_BDR25_003")
+            self.assertIn("New batch:", app.batch_preview.get())
+            self.assertEqual(app.about_text.get("1.0", "end-1c"), "My notes")
+            self.assertIn("must use letters and digits", app._localize(
+                "盘号前缀只能包含英文字母和数字，例如 ARC。"))
+            app.language_var.set("中文")
+            app._change_language()
+            self.assertEqual(app.about_text.get("1.0", "end-1c"), "My notes")
+            self.assertEqual(app.read_button.cget("text"), "读取光盘")
+        finally:
+            for event_id in app.tk.call("after", "info"):
+                app.after_cancel(event_id)
+            app.destroy()
+
     def test_create_save_about_generate_manifest(self) -> None:
         with patch("backup_gui.messagebox.showinfo"), patch("backup_gui.messagebox.showerror") as errors:
             app = BackupGUI()
@@ -142,6 +168,30 @@ class GUIFlowTests(unittest.TestCase):
                 self.assertFalse(app.busy)
                 self.assertTrue(verify_batch(batch).passed)
                 self.assertNotIn("ABOUT.txt", (batch / "SHA256SUMS.txt").read_text(encoding="utf-8"))
+                errors.assert_not_called()
+            finally:
+                for event_id in app.tk.call("after", "info"):
+                    app.after_cancel(event_id)
+                app.destroy()
+
+    def test_full_batch_name_can_be_entered_directly(self) -> None:
+        with patch("backup_gui.messagebox.showinfo"), patch("backup_gui.messagebox.showerror") as errors:
+            app = BackupGUI()
+            app.after_cancel(app.startup_drive_after)
+            try:
+                app.output_var.set(str(self.root))
+                app.middle_var.set("BDR25")
+                app.suffix_var.set("004")
+                app.media_var.set("BD-R 25 GB")
+                app.manual_batch_var.set(True)
+                app._on_manual_batch_changed()
+                app.batch_name_var.set("B07_2026-10-06_FamilyPhotos")
+                self.assertEqual(str(app.batch_no_entry.cget("state")), "disabled")
+                self.assertIn("B07_2026-10-06_FamilyPhotos", app.batch_preview.get())
+                app._create_batch()
+                self.assertEqual(Path(app.batch_path_var.get()).name,
+                                 "B07_2026-10-06_FamilyPhotos")
+                self.assertTrue(Path(app.batch_path_var.get()).is_dir())
                 errors.assert_not_called()
             finally:
                 for event_id in app.tk.call("after", "info"):

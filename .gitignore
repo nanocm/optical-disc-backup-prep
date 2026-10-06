@@ -3,6 +3,8 @@ tests/.tmp/
 .venv/
 build/
 dist/
+/release/
+*.spec
 *.py[cod]
 Thumbs.db
 .DS_Store
