@@ -24,12 +24,14 @@ from backup_core import (
     parse_batch_name,
     render_disc_info,
     save_about,
+    scan_data,
     verify_batch,
 )
 from i18n import localize_core, tr
 
 
 HERE = Path(__file__).resolve().parent
+LARGE_FILE_NOTICE_BYTES = 2 * 1024**3
 
 
 def enable_windows_dpi_awareness() -> None:
@@ -171,6 +173,8 @@ class BackupGUI(tk.Tk):
         self.disc_summary = tk.StringVar(value=self.t("启动时只识别光驱；点击“读取光盘”才查询盘片。"))
         self.batch_preview = tk.StringVar()
         self.status_var = tk.StringVar(value=self.t("等待输入；程序只写本地准备目录，不会刻录。"))
+        self.filesystem_advice_var = tk.StringVar()
+        self.large_file_summary: tuple[int, int] | None = None
 
         self._build_widgets()
         self._sync_about_controls()
@@ -182,6 +186,8 @@ class BackupGUI(tk.Tk):
         for variable in (self.disc_id_var, self.batch_no_var, self.date_var,
                          self.title_var, self.batch_name_var):
             variable.trace_add("write", lambda *_: self._update_preview())
+        self.media_var.trace_add("write", lambda *_: self._update_filesystem_advice())
+        self.batch_path_var.trace_add("write", lambda *_: self._clear_file_size_summary())
         self.protocol("WM_DELETE_WINDOW", self._on_close)
         self.after(80, self._poll_events)
         self.startup_drive_after = self.after(250, self.refresh_drives)
@@ -211,6 +217,7 @@ class BackupGUI(tk.Tk):
         self.drive_combo["values"] = list(self.discs)
         self._show_selected_disc()
         self._update_preview()
+        self._update_filesystem_advice()
         self.status_var.set(self.t("等待输入；程序只写本地准备目录，不会刻录。"))
 
     def _build_widgets(self) -> None:
@@ -373,6 +380,87 @@ class BackupGUI(tk.Tk):
         self.progress.grid(row=3, column=0, columnspan=2, sticky="ew")
         ttk.Label(shell, textvariable=self.status_var, wraplength=960).grid(
             row=4, column=0, columnspan=2, sticky="w", pady=(6, 0))
+
+        advice = ttk.LabelFrame(shell, text=self.t("刻录文件系统建议"), padding=(10, 6))
+        advice.grid(row=5, column=0, columnspan=2, sticky="ew", pady=(10, 0))
+        advice.columnconfigure(0, weight=1)
+        ttk.Button(advice, text=self.t("按用途查看…"), command=self._show_filesystem_guide).grid(
+            row=0, column=1, sticky="e", pady=(0, 4))
+        advice_text = ttk.Label(advice, textvariable=self.filesystem_advice_var,
+                                wraplength=950, justify="left", foreground="#244b64")
+        advice_text.grid(row=1, column=0, columnspan=2, sticky="ew")
+        advice.bind("<Configure>", lambda event: advice_text.configure(
+            wraplength=max(320, event.width - 26)))
+        self._update_filesystem_advice()
+
+    def _clear_file_size_summary(self) -> None:
+        self.large_file_summary = None
+        self._update_filesystem_advice()
+
+    def _update_filesystem_advice(self) -> None:
+        is_cd = self.media_var.get().strip().upper().startswith("CD")
+        if is_cd:
+            recommendation = self.t("CD 数据盘：为兼容旧设备，可选 ISO 9660 + Joliet。")
+        else:
+            recommendation = self.t("DVD / BD 数据盘：请在刻录软件中选 UDF；大文件不要只用 ISO 9660 / Joliet。")
+        if is_cd:
+            size_note = self.t("先核对文件总量是否装得下这张 CD。")
+        elif self.large_file_summary is None:
+            size_note = self.t("生成 SHA 后会检查 DATA 中是否有单个文件达到 2 GiB。")
+        else:
+            count, largest = self.large_file_summary
+            size_note = (self.t("上次生成 SHA 时发现 {count} 个至少 2 GiB 的文件，最大 {size}。",
+                                count=count, size=readable_size(largest, self.language))
+                         if count else self.t("上次生成 SHA 时未发现达到 2 GiB 的文件。"))
+        check = (self.t("刻录后弹出重插，再用本程序校验 SHA。") if is_cd else
+                 self.t("若使用镜像，刻录前先挂载并试读大文件；刻录后弹出重插，再校验 SHA。混合格式还要确认 Windows 实际读取 UDF。"))
+        self.filesystem_advice_var.set("\n".join((recommendation, size_note, check)))
+
+    def _show_filesystem_guide(self) -> None:
+        window = tk.Toplevel(self)
+        window.title(self.t("按用途选择文件系统"))
+        window.geometry(f"{min(820, self.winfo_screenwidth() - 80)}x"
+                        f"{min(600, self.winfo_screenheight() - 100)}")
+        window.minsize(540, 380)
+        window.transient(self)
+        frame = ttk.Frame(window, padding=12)
+        frame.pack(fill="both", expand=True)
+        frame.columnconfigure(0, weight=1)
+        frame.rowconfigure(1, weight=1)
+        ttk.Label(frame, text=self.t("按用途选择文件系统"),
+                  font=("Microsoft YaHei UI", 14, "bold"), foreground="#173f59").grid(
+            row=0, column=0, sticky="w", pady=(0, 8))
+        body = tk.Text(frame, wrap="word", font=("Microsoft YaHei UI", 10),
+                       background="#ffffff", foreground="#26384a", relief="flat",
+                       padx=12, pady=10, spacing2=4, spacing3=7)
+        body.grid(row=1, column=0, sticky="nsew")
+        scrollbar = ttk.Scrollbar(frame, orient="vertical", command=body.yview)
+        scrollbar.grid(row=1, column=1, sticky="ns")
+        body.configure(yscrollcommand=scrollbar.set)
+        body.tag_configure("heading", font=("Microsoft YaHei UI", 10, "bold"),
+                           foreground="#176a8a", spacing1=8)
+        body.insert("end", self.t("这些建议用于选择刻录设置；本程序不会修改镜像或光盘的文件系统。") + "\n\n")
+        scenarios = (
+            ("普通 CD 数据盘",
+             "选择 ISO 9660 + Joliet。给旧设备使用时，检查它实际能否显示文件名并打开文件。"),
+            ("DVD / BD 文件备份",
+             "现代电脑读取时选 UDF；BD 数据盘通常用 UDF 2.50。DVD 可选目标系统支持的 UDF 版本。单文件较大时，不要只用 ISO 9660 / Joliet。"),
+            ("旧电脑、车机或播放器",
+             "先查目标设备支持的盘型和文件系统。小文件数据盘可试 ISO 9660 + Joliet；需要两类目录视图时可做桥接盘。用测试盘在目标设备读回。"),
+            ("需要拖入、删除或修改文件",
+             "使用 DVD-RW、DVD+RW 或 BD-RE，按需要选 Windows“像 U 盘一样使用”的 Live UDF。先用小文件确认复制后直接写盘，而非进入待刻录区。R 盘即使能保存同名新版，也不会回收旧扇区；Live 盘须在目标电脑实测兼容性。"),
+            ("已有 ISO 或系统启动镜像",
+             "在刻录软件中使用“写入镜像”。镜像内部的文件系统和启动结构已定；把 ISO 当普通文件刻入 DATA/ 不会得到启动盘。"),
+            ("制作 DVD-Video 或 BD-Video",
+             "使用影碟编排软件。DVD-Video 通常用 UDF 1.02（兼容 ISO 9660），BD-Video 用 UDF 2.50；只选对文件系统还不够，目录和视频格式也须符合规范。"),
+            ("以后还要追加会话",
+             "文件系统选择不保证能续写。第一次刻录须保留可追加状态；下次刻录要导入旧会话，完成后重插检查新旧文件。重要备份尽量一次写完。"),
+        )
+        for heading, detail in scenarios:
+            body.insert("end", self.t(heading) + "\n", "heading")
+            body.insert("end", self.t(detail) + "\n")
+        body.insert("end", "\n" + self.t("若做 ISO 9660 + Joliet + UDF 混合盘，请分别检查目标设备看到的目录；Windows 显示 CDFS 时，不能据此认定 UDF 视图可读。刻录后弹出重插，并按 SHA 清单校验。"))
+        body.configure(state="disabled")
 
     def _update_preview(self) -> None:
         try:
@@ -732,16 +820,32 @@ class BackupGUI(tk.Tk):
             if not replace:
                 return
         omit_about = self.omit_about_var.get()
+
+        def prepare_manifest(progress):
+            large_sizes = [item.size for item in scan_data(batch / "DATA")
+                           if item.size >= LARGE_FILE_NOTICE_BYTES]
+            result = generate_manifest(batch, replace=replace, progress=progress,
+                                       omit_about=omit_about)
+            return result, (len(large_sizes), max(large_sizes, default=0))
+
         self._start(self.t("计算 SHA-256"),
-                    lambda p: generate_manifest(batch, replace=replace, progress=p, omit_about=omit_about),
+                    prepare_manifest,
                     lambda result: self._manifest_done(result, batch, omit_about))
 
-    def _manifest_done(self, manifest: Path, batch: Path, omit_about: bool) -> None:
+    def _manifest_done(self, result: tuple[Path, tuple[int, int]], batch: Path,
+                       omit_about: bool) -> None:
+        manifest, self.large_file_summary = result
+        self._update_filesystem_advice()
         self.status_var.set(self.t("SHA256SUMS.txt 已生成：{path}。刻录前可校验当前目录。", path=manifest))
         scope = self.t("DATA 中的每个文件" if omit_about else "ABOUT 和 DATA 中的每个文件")
+        warning = ""
+        if self.large_file_summary[0]:
+            warning = "\n\n" + (self.t("当前批次有文件超过 CD 容量，请换用 DVD / BD。")
+                                  if self.media_var.get().strip().upper().startswith("CD") else
+                                  self.t("检测到单个文件达到 2 GiB。刻录 DVD / BD 时请选 UDF，并读回校验。"))
         messagebox.showinfo(self.t("校验清单已生成"),
                             self.t("已计算 {scope}：\n{path}\n\n现在可以校验本地目录，再用刻录软件写盘。",
-                                   scope=scope, path=manifest))
+                                   scope=scope, path=manifest) + warning)
 
     def _verify_batch(self) -> None:
         initial = self.batch_path_var.get() or self.output_var.get() or str(Path.home())

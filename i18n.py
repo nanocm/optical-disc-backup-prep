@@ -46,6 +46,54 @@ EN: dict[str, str] = {
     "保存 ABOUT": "Save ABOUT",
     "生成／更新 SHA": "Generate SHA-256",
     "校验目录／光盘": "Verify folder/disc",
+    "刻录文件系统建议": "File system for burning",
+    "按用途查看…": "Choose by use…",
+    "按用途选择文件系统": "Choose a file system by use",
+    "这些建议用于选择刻录设置；本程序不会修改镜像或光盘的文件系统。":
+        "Use these notes to choose burning settings. This app does not change the file system in an image or on a disc.",
+    "普通 CD 数据盘": "Standard data CD",
+    "选择 ISO 9660 + Joliet。给旧设备使用时，检查它实际能否显示文件名并打开文件。":
+        "Choose ISO 9660 + Joliet. On an older device, check that it shows the filenames and opens the files.",
+    "DVD / BD 文件备份": "DVD / BD file backup",
+    "现代电脑读取时选 UDF；BD 数据盘通常用 UDF 2.50。DVD 可选目标系统支持的 UDF 版本。单文件较大时，不要只用 ISO 9660 / Joliet。":
+        "Use UDF for modern computers. Data BDs commonly use UDF 2.50; on DVD, choose a UDF revision supported by the target system. For large files, do not use only ISO 9660 / Joliet.",
+    "旧电脑、车机或播放器": "Older computer, car stereo, or player",
+    "先查目标设备支持的盘型和文件系统。小文件数据盘可试 ISO 9660 + Joliet；需要两类目录视图时可做桥接盘。用测试盘在目标设备读回。":
+        "Check which disc types and file systems the device supports. For small files, try ISO 9660 + Joliet; a bridge disc can provide both ISO and UDF views. Test reading the disc on the target device.",
+    "需要拖入、删除或修改文件": "Drag in, delete, or revise files",
+    "使用 DVD-RW、DVD+RW 或 BD-RE，按需要选 Windows“像 U 盘一样使用”的 Live UDF。先用小文件确认复制后直接写盘，而非进入待刻录区。R 盘即使能保存同名新版，也不会回收旧扇区；Live 盘须在目标电脑实测兼容性。":
+        "Use DVD-RW, DVD+RW, or BD-RE with Windows Live UDF when direct file changes are needed. Try a small file to confirm it writes immediately instead of entering the burn queue. Saving a new version on write-once media does not reclaim old sectors. Test Live-disc compatibility on the target computer.",
+    "已有 ISO 或系统启动镜像": "Existing ISO or boot image",
+    "在刻录软件中使用“写入镜像”。镜像内部的文件系统和启动结构已定；把 ISO 当普通文件刻入 DATA/ 不会得到启动盘。":
+        "Use Write image in the burning software. The image already defines its file system and boot structure. Adding the ISO as an ordinary file under DATA/ does not make a bootable disc.",
+    "制作 DVD-Video 或 BD-Video": "DVD-Video or BD-Video",
+    "使用影碟编排软件。DVD-Video 通常用 UDF 1.02（兼容 ISO 9660），BD-Video 用 UDF 2.50；只选对文件系统还不够，目录和视频格式也须符合规范。":
+        "Use video-disc authoring software. DVD-Video normally uses UDF 1.02 with ISO 9660 compatibility; BD-Video uses UDF 2.50. The directory layout and video format must also meet the relevant specification.",
+    "以后还要追加会话": "Append another session later",
+    "文件系统选择不保证能续写。第一次刻录须保留可追加状态；下次刻录要导入旧会话，完成后重插检查新旧文件。重要备份尽量一次写完。":
+        "A file system choice does not guarantee appending. Leave the first burn appendable, import the old session when burning again, then reinsert and check both old and new files. Prefer a single finished burn for important backups.",
+    "若做 ISO 9660 + Joliet + UDF 混合盘，请分别检查目标设备看到的目录；Windows 显示 CDFS 时，不能据此认定 UDF 视图可读。刻录后弹出重插，并按 SHA 清单校验。":
+        "For an ISO 9660 + Joliet + UDF hybrid disc, inspect the directory seen by each target device. If Windows shows CDFS, that does not prove the UDF view is readable. Eject, reinsert, and check files against the SHA manifest.",
+    "CD 数据盘：为兼容旧设备，可选 ISO 9660 + Joliet。":
+        "Data CD: choose ISO 9660 + Joliet if older-device compatibility matters.",
+    "先核对文件总量是否装得下这张 CD。":
+        "Check that the total file size fits on the CD.",
+    "DVD / BD 数据盘：请在刻录软件中选 UDF；大文件不要只用 ISO 9660 / Joliet。":
+        "Data DVD / BD: select UDF in the burning software. Do not use only ISO 9660 / Joliet for large files.",
+    "生成 SHA 后会检查 DATA 中是否有单个文件达到 2 GiB。":
+        "Generating the SHA manifest checks for individual files of 2 GiB or more in DATA/.",
+    "上次生成 SHA 时发现 {count} 个至少 2 GiB 的文件，最大 {size}。":
+        "The last SHA run found {count} file(s) of at least 2 GiB; largest: {size}.",
+    "上次生成 SHA 时未发现达到 2 GiB 的文件。":
+        "The last SHA run found no files of 2 GiB or more.",
+    "若使用镜像，刻录前先挂载并试读大文件；刻录后弹出重插，再校验 SHA。混合格式还要确认 Windows 实际读取 UDF。":
+        "If using an image, mount and read large files before burning. After burning, eject, reinsert, and verify SHA. With a hybrid disc, confirm Windows actually mounted UDF.",
+    "刻录后弹出重插，再用本程序校验 SHA。":
+        "After burning, eject, reinsert, and verify SHA with this app.",
+    "检测到单个文件达到 2 GiB。刻录 DVD / BD 时请选 UDF，并读回校验。":
+        "A file is at least 2 GiB. Choose UDF for a data DVD / BD and verify it after burning.",
+    "当前批次有文件超过 CD 容量，请换用 DVD / BD。":
+        "This batch contains a file too large for a CD. Use a DVD or BD instead.",
     "启动时只识别光驱；点击“读取光盘”才查询盘片。":
         "Drive detection does not read media. Select Read disc to query the inserted disc.",
     "等待输入；程序只写本地准备目录，不会刻录。":

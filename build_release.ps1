@@ -22,7 +22,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'PyInstaller build failed.' }
 
     New-Item -ItemType Directory -Path $OutputDir -Force | Out-Null
-    $filename = 'OpticalDiscBackupPrep-v0.1.0-windows-x64.exe'
+    $filename = 'OpticalDiscBackupPrep-v0.1.2-windows-x64.exe'
     $target = Join-Path $OutputDir $filename
     Copy-Item -LiteralPath dist\OpticalDiscBackupPrep.exe -Destination $target -Force
     $digest = (Get-FileHash -Algorithm SHA256 -LiteralPath $target).Hash.ToLowerInvariant()

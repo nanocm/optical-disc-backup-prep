@@ -25,6 +25,20 @@ At startup the app lists drives without reading media. You can prepare folders a
 5. Select **Generate SHA-256** after the files are in place. Then select **Verify folder/disc** and choose the `B01_…` folder on your hard drive.
 6. Burn the **contents** of the disc-ID folder with separate software, placing `DISC_INFO.txt` and `B01_…` at the disc root. Set a volume label if wanted, and check capacity and burning settings. Eject and reinsert the disc, then verify its `B01_…` folder in the app.
 
+The bottom panel recommends a file system for the selected media. Select **Choose by use…** for the full guide. After generating SHA-256, the app also checks the current batch's `DATA/` for individual files of 2 GiB or more. This is a conservative alert, not a universal ISO 9660 hard limit. The app only advises; it does not set the burning software's file system.
+
+| Use | Recommendation | Check |
+| --- | --- | --- |
+| Standard data CD | ISO 9660 + Joliet | Test filenames and file reading on older devices. |
+| DVD / BD file backup | UDF; data BDs commonly use UDF 2.50, while DVDs should use a UDF revision supported by the target system | Do not use only ISO 9660 / Joliet for large files. Inspect the image first; reinsert and verify after burning. |
+| Older computer, car stereo, or player | Follow the device manual; for small files, try ISO 9660 + Joliet or an ISO / UDF bridge disc | Test a disc in the target device. It must support the media, file system, and file format. |
+| Directly add, delete, or revise files | DVD-RW, DVD+RW, or BD-RE with Windows Live UDF | Try a small file to confirm it writes immediately. New versions on write-once discs do not reclaim old sectors. |
+| Existing ISO or system boot image | Use the burning software's Write image mode | The image already defines its file system and boot layout; adding it as an ordinary data file will not make a boot disc. |
+| DVD-Video / BD-Video | Use authoring software; DVD-Video normally uses UDF 1.02 + ISO 9660, BD-Video UDF 2.50 | The directory and video formats must also meet the relevant specification. |
+| Append another session later | Keep the disc appendable and import the old session in burning software | A file system alone does not guarantee appending. Reinsert and check both old and new files. |
+
+For an ISO 9660 + Joliet + UDF hybrid image, mount it in Windows and check that the drive's properties show UDF. If they show CDFS, that read does not verify the UDF view. Copy and hash-check a large file, then eject, reinsert, and verify the burned disc as well.
+
 With ABOUT enabled, the staging folder looks like this:
 
 ```text
